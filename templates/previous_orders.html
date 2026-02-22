@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3 class="mb-4">Previous Orders</h3>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Total</th>
+            <th>Time Slot</th>
+            <th>Status</th>
+            <th>Payment</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.item_name }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>₹{{ order.total_price }}</td>
+            <td>{{ order.time_slot }}</td>
+            <td>{{ order.status }}</td>
+            <td>{{ order.payment_status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

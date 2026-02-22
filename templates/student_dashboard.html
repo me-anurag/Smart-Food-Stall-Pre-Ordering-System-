@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Food Menu</h2>
+
+<div class="row g-4">
+
+    {% for item in items %}
+    <div class="col-md-4 col-lg-3">
+        <div class="card shadow-sm h-100 border-0">
+
+            <img src="{{ url_for('static', filename='images/' + item.image) }}"
+                 class="card-img-top"
+                 style="height:200px; object-fit:cover;">
+
+            <div class="card-body d-flex flex-column">
+
+                <h5 class="card-title">{{ item.name }}</h5>
+                <p class="card-text">Price: ₹{{ item.price }}</p>
+
+                <form method="POST" action="/place-order" class="mt-auto">
+
+                    <input type="hidden" name="item_name" value="{{ item.name }}">
+
+                    <div class="mb-2">
+                        <label class="form-label">Quantity</label>
+                        <input type="number"
+                               name="quantity"
+                               class="form-control"
+                               value="1"
+                               min="1"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Select Time Slot</label>
+                        <select name="time_slot" class="form-select" required>
+                            <option value="">Choose...</option>
+                            <option>10:30 - 10:45</option>
+                            <option>11:00 - 11:15</option>
+                            <option>12:00 - 12:15</option>
+                            <option>01:00 - 01:15</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-dark">
+                            Place Order
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+
+<hr class="my-5">
+
+<h3 id="activeOrders">Your Active Orders</h3>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Total</th>
+            <th>Time Slot</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody id="userOrders">
+        {% for order in user_orders %}
+        {% if order.status != "Completed" %}
+        <tr id="user-order-{{ order.id }}">
+            <td>{{ order.item_name }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>₹{{ order.total_price }}</td>
+            <td>{{ order.time_slot }}</td>
+            <td class="status">{{ order.status }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<script>
+var socket = io();
+
+function updateBadge(change) {
+    var badge = document.getElementById("activeBadge");
+    if (!badge) return;
+
+    var current = parseInt(badge.innerText || 0);
+    var newValue = current + change;
+
+    if (newValue <= 0) {
+        badge.style.display = "none";
+        badge.innerText = 0;
+    } else {
+        badge.style.display = "inline-block";
+        badge.innerText = newValue;
+    }
+}
+
+socket.on("new_order", function(data) {
+    updateBadge(1);
+});
+
+socket.on("status_updated", function(data) {
+    var row = document.getElementById("user-order-" + data.id);
+
+    if (row) {
+        var statusCell = row.querySelector(".status");
+        statusCell.innerText = data.status;
+
+        if (data.status === "Completed") {
+            row.remove();
+            updateBadge(-1);
+        }
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3 class="mb-4">Shopkeeper Dashboard</h3>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                <h6>Today's Revenue</h6>
+                <h4 id="todayRevenue">₹{{ revenue }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5>Active Orders</h5>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Time</th>
+            <th>Paid</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody id="ordersTable">
+        {% for order in active_orders %}
+        <tr id="order-{{ order.id }}">
+            <td>{{ order.user_name }}</td>
+            <td>{{ order.item_name }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>{{ order.time_slot }}</td>
+            <td>{{ order.payment_status }}</td>
+            <td class="status">{{ order.status }}</td>
+            <td>
+                <button class="btn btn-sm btn-warning"
+                        onclick="updateStatus({{ order.id }}, 'Preparing')">
+                        Preparing
+                </button>
+                <button class="btn btn-sm btn-success"
+                        onclick="updateStatus({{ order.id }}, 'Ready')">
+                        Ready
+                </button>
+                <button class="btn btn-sm btn-dark"
+                        onclick="updateStatus({{ order.id }}, 'Completed')">
+                        Complete
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h5 class="mt-5">Completed Orders</h5>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Item</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in completed_orders %}
+        <tr>
+            <td>{{ order.user_name }}</td>
+            <td>{{ order.item_name }}</td>
+            <td>₹{{ order.total_price }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<script>
+var socket = io();
+
+socket.on("new_order", function(data) {
+
+    var table = document.getElementById("ordersTable");
+
+    var row = `
+        <tr id="order-${Date.now()}">
+            <td>${data.user_name}</td>
+            <td>${data.item_name}</td>
+            <td>${data.quantity}</td>
+            <td>${data.time_slot}</td>
+            <td>${data.payment_status}</td>
+            <td class="status">${data.status}</td>
+            <td>
+                <button class="btn btn-sm btn-warning"
+                        onclick="updateStatus(${data.id}, 'Preparing')">
+                        Preparing
+                </button>
+                <button class="btn btn-sm btn-success"
+                        onclick="updateStatus(${data.id}, 'Ready')">
+                        Ready
+                </button>
+                <button class="btn btn-sm btn-dark"
+                        onclick="updateStatus(${data.id}, 'Completed')">
+                        Complete
+                </button>
+            </td>
+        </tr>
+    `;
+
+    table.insertAdjacentHTML("afterbegin", row);
+});
+
+socket.on("status_updated", function(data) {
+    var row = document.getElementById("order-" + data.id);
+
+    if (row) {
+        row.querySelector(".status").innerText = data.status;
+
+        if (data.status === "Completed") {
+            row.remove();
+        }
+    }
+});
+
+function updateStatus(orderId, status) {
+    fetch("/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: orderId, status: status })
+    });
+}
+</script>
+
+{% endblock %}
