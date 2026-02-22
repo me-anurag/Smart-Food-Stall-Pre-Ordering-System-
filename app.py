@@ -179,6 +179,10 @@ def confirm_payment():
 
     db.session.add(new_order)
     db.session.commit()
+
+    # ✅ DEFINE menu_item BEFORE USING IT
+    menu_item = Menu.query.filter_by(name=item_name).first()
+
     socketio.emit("new_order", {
         "id": new_order.id,
         "user_name": session["name"],
@@ -187,10 +191,11 @@ def confirm_payment():
         "time_slot": time_slot,
         "total_price": total_price,
         "payment_status": "Paid",
-        "status": "Pending"
+        "status": "Pending",
+        "image": menu_item.image if menu_item else ""
     })
-    return render_template("success.html")
 
+    return render_template("success.html")
 @app.route("/update-status", methods=["POST"])
 def update_status():
     data = request.get_json()
@@ -213,10 +218,17 @@ def shop_dashboard():
     if "role" not in session or session["role"] != "shop":
         return redirect(url_for("login"))
 
-    today = date.today()
-
     active_orders = Order.query.filter(Order.status != "Completed").all()
     completed_orders = Order.query.filter_by(status="Completed").all()
+
+    # Attach image to each order
+    for order in active_orders:
+        menu_item = Menu.query.filter_by(name=order.item_name).first()
+        order.image = menu_item.image if menu_item else None
+
+    for order in completed_orders:
+        menu_item = Menu.query.filter_by(name=order.item_name).first()
+        order.image = menu_item.image if menu_item else None
 
     revenue = sum(order.total_price for order in completed_orders)
 

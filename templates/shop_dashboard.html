@@ -17,11 +17,11 @@
 
 <h5>Active Orders</h5>
 
-<table class="table table-bordered table-striped">
-    <thead>
+<table class="table table-bordered align-middle">
+    <thead class="table-dark">
         <tr>
+            <th>Food</th>
             <th>User</th>
-            <th>Item</th>
             <th>Qty</th>
             <th>Time</th>
             <th>Paid</th>
@@ -32,12 +32,40 @@
     <tbody id="ordersTable">
         {% for order in active_orders %}
         <tr id="order-{{ order.id }}">
+            <td>
+                <div class="d-flex align-items-center">
+                    {% if order.image %}
+                    <img src="{{ url_for('static', filename='images/' + order.image) }}"
+                         width="60"
+                         height="60"
+                         class="rounded me-2"
+                         style="object-fit:cover;">
+                    {% endif %}
+                    <strong>{{ order.item_name }}</strong>
+                </div>
+            </td>
+
             <td>{{ order.user_name }}</td>
-            <td>{{ order.item_name }}</td>
             <td>{{ order.quantity }}</td>
             <td>{{ order.time_slot }}</td>
-            <td>{{ order.payment_status }}</td>
-            <td class="status">{{ order.status }}</td>
+
+            <td>
+                <span class="badge bg-success">
+                    {{ order.payment_status }}
+                </span>
+            </td>
+
+            <td class="status">
+                <span class="badge 
+                    {% if order.status == 'Pending' %}bg-secondary
+                    {% elif order.status == 'Preparing' %}bg-warning text-dark
+                    {% elif order.status == 'Ready' %}bg-primary
+                    {% elif order.status == 'Completed' %}bg-dark
+                    {% endif %}">
+                    {{ order.status }}
+                </span>
+            </td>
+
             <td>
                 <button class="btn btn-sm btn-warning"
                         onclick="updateStatus({{ order.id }}, 'Preparing')">
@@ -59,19 +87,30 @@
 
 <h5 class="mt-5">Completed Orders</h5>
 
-<table class="table table-bordered">
-    <thead>
+<table class="table table-bordered align-middle">
+    <thead class="table-secondary">
         <tr>
+            <th>Food</th>
             <th>User</th>
-            <th>Item</th>
             <th>Total</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="completedTable">
         {% for order in completed_orders %}
         <tr>
+            <td>
+                <div class="d-flex align-items-center">
+                    {% if order.image %}
+                    <img src="{{ url_for('static', filename='images/' + order.image) }}"
+                         width="50"
+                         height="50"
+                         class="rounded me-2"
+                         style="object-fit:cover;">
+                    {% endif %}
+                    {{ order.item_name }}
+                </div>
+            </td>
             <td>{{ order.user_name }}</td>
-            <td>{{ order.item_name }}</td>
             <td>₹{{ order.total_price }}</td>
         </tr>
         {% endfor %}
@@ -88,13 +127,24 @@ socket.on("new_order", function(data) {
     var table = document.getElementById("ordersTable");
 
     var row = `
-        <tr id="order-${Date.now()}">
+        <tr id="order-${data.id}">
+            <td>
+                <div class="d-flex align-items-center">
+                    <img src="/static/images/${data.image}"
+                         width="60"
+                         height="60"
+                         class="rounded me-2"
+                         style="object-fit:cover;">
+                    <strong>${data.item_name}</strong>
+                </div>
+            </td>
             <td>${data.user_name}</td>
-            <td>${data.item_name}</td>
             <td>${data.quantity}</td>
             <td>${data.time_slot}</td>
-            <td>${data.payment_status}</td>
-            <td class="status">${data.status}</td>
+            <td><span class="badge bg-success">${data.payment_status}</span></td>
+            <td class="status">
+                <span class="badge bg-secondary">${data.status}</span>
+            </td>
             <td>
                 <button class="btn btn-sm btn-warning"
                         onclick="updateStatus(${data.id}, 'Preparing')">
@@ -119,10 +169,20 @@ socket.on("status_updated", function(data) {
     var row = document.getElementById("order-" + data.id);
 
     if (row) {
-        row.querySelector(".status").innerText = data.status;
+        var badge = row.querySelector(".status span");
+        badge.innerText = data.status;
 
-        if (data.status === "Completed") {
+        badge.className = "badge";
+
+        if (data.status === "Preparing") {
+            badge.classList.add("bg-warning", "text-dark");
+        } else if (data.status === "Ready") {
+            badge.classList.add("bg-primary");
+        } else if (data.status === "Completed") {
+            badge.classList.add("bg-dark");
             row.remove();
+        } else {
+            badge.classList.add("bg-secondary");
         }
     }
 });
